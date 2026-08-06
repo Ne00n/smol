@@ -1,20 +1,36 @@
 <p align="center">
-  <img src="https://smolenv.com/smol-sand-a.webp" width="350" height="146" alt="smol agents in a sandbox">
+  <img src="https://smolenv.com/smol-sand-a.webp" width="467" height="195" alt="smol agents in a sandbox">
 </p>
 
 # smol
 
-smol is an agent.
+smol is an agent
 
-smol is smol.
+smol is smol
 
-smol is so smol you can understand it in an afternoon.
+smol is so smol you can understand it in an afternoon
 
-smol is fewer tokens.
+smol is fewer tokens
 
-smol is fewer dependencies.
+smol is fewer dependencies
 
-smol is easy to adapt.
+smol is easy to adapt
+
+## Python
+
+```python
+import json,sys;from subprocess import getoutput;from urllib.request import Request,urlopen;from uuid import uuid4
+url=sys.argv[1];h=[];H={"Content-Type":"application/json","session_id":uuid4().hex};b=dict(model="gpt-5.6-sol",input=h,tools=[dict(type="custom",name="sh")])
+while True:
+  if not(p:=input("> ")).strip():continue
+  h+=[dict(role="user",content=p)]
+  while True:
+    r=json.load(urlopen(Request(url,json.dumps(b).encode(),H)));o=r["output"];h+=o;c=[i for i in o if i["type"]=="custom_tool_call"]
+    if not c:print(o[-1]["content"][0]["text"],f'\n[{r["usage"]["total_tokens"]/10500:05.2f}%]');break
+    h+=[dict(type="custom_tool_call_output",call_id=i["call_id"],output=getoutput(i["input"])) for i in c]
+```
+
+## Go
 
 ```go
 package main
@@ -23,39 +39,46 @@ type M=map[string]any
 func main(){
  u:=os.Args[1];k:=rand.Text();h:=[]any{};s:=bufio.NewScanner(os.Stdin)
  for fmt.Print("> ");s.Scan();fmt.Print("> "){
-  if len(bytes.TrimSpace(s.Bytes()))==0{continue}
+  if len(bytes.TrimSpace(s.Bytes()))<1{continue}
   h=append(h,M{"role":"user","content":s.Text()})
   for{
-   b,_:=json.Marshal(M{"model":"gpt-5.6-sol","input":h,"prompt_cache_key":k,"tools":[]M{{"type":"custom","name":"sh"}}})
-   r,_:=http.Post(u,"application/json",bytes.NewReader(b));var x M
+   b,_:=json.Marshal(M{"model":"gpt-5.6-sol","input":h,"tools":[]M{{"type":"custom","name":"sh"}}})
+   q,_:=http.NewRequest("POST",u,bytes.NewReader(b));q.Header=http.Header{"Content-Type":{"application/json"},"session_id":{k}};r,_:=http.DefaultClient.Do(q);x:=M{}
    json.NewDecoder(r.Body).Decode(&x);r.Body.Close();o:=x["output"].([]any);h=append(h,o...);c:=false
    for _,v:=range o{m:=v.(M);if m["type"]=="custom_tool_call"{
     c=true;p:=exec.Command("/bin/sh","-c",m["input"].(string));q,_:=p.CombinedOutput();n:=p.ProcessState.ExitCode()
     h=append(h,M{"type":"custom_tool_call_output","call_id":m["call_id"],"output":fmt.Sprintf("exit %d\n%s",n,q)})
    }}
-   if !c{t:=o[len(o)-1].(M)["content"].([]any)[0].(M)["text"]
-    z:=x["usage"].(M)["total_tokens"].(float64)*100/1_050_000;fmt.Printf("%s\n[%06.3f%%]\n",t,z);break}
+   if !c{fmt.Printf("%s\n[%05.2f%%]\n",o[len(o)-1].(M)["content"].([]any)[0].(M)["text"],x["usage"].(M)["total_tokens"].(float64)/10500);break}
   }
  }
 }
 ```
+
+(more implementations coming soon!)
 
 ## Run
 
 Pass URL of an endpoint that is compatible with the OpenAI Responses API
 
 ```sh
+python3 smol.py http://127.0.0.1:8787/v1/responses
+
+# or
 go run smol.go http://127.0.0.1:8787/v1/responses
 ```
 
-- Enter prompts at `>`
-- History persists
-- Shell calls run locally
-- Ctrl-D exits
+- enter prompt at `>`
+- empty input gets ignored
+- ctrl+d exits
+- model requested commands get executed directly via `sh` (!)
 
 Optional quality of life: rlwrap for line editing and persistent history
 
 ```sh
+rlwrap -H ~/.smol_history python3 smol.py http://127.0.0.1:8787/v1/responses
+
+# or
 rlwrap -H ~/.smol_history go run smol.go http://127.0.0.1:8787/v1/responses
 ```
 
@@ -104,9 +127,9 @@ Here are some prompts to get you going.
 > Come up with an easy to use review ui that has summary tables across various dimensions but also ability to drill down and view every trace
 > and easily compare traces of runs side by side. We can do all of this without any npm packages. HTML and Vanilla JS is good. Python and Go are good. Stdlib is good.
 
-> Explain `smol.go` line by line and highlight all potential problems you can identify.
+> Explain `smol.py` and `smol.go` line by line, compare them, and highlight all potential problems you can identify.
 > How can we make it more robust while keeping it simple?
 
-> Give me a few feature ideas that we could add to smol.go while staying with the existing philosophy of minimalism and stdlib-only.
+> Give me a few feature ideas that we could add to `smol.py` or `smol.go` while staying with the existing philosophy of minimalism and stdlib-only.
 
-Requires Go 1.24+.
+Requires Python 3.8+ or Go 1.24+.
