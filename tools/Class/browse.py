@@ -33,8 +33,11 @@ class Browse():
 
     async def browse(self,url):
         print(f"Browsing {url}")
-        await self.page.goto(url)
-        await asyncio.sleep(3)
+        try:
+            await self.page.goto(url)
+            await asyncio.sleep(3)
+         except Exception as e:
+            print(e)
 
     async def getHtml(self):
         return await self.page.content()
