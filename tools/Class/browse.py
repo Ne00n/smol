@@ -36,7 +36,7 @@ class Browse():
         try:
             await self.page.goto(url)
             await asyncio.sleep(3)
-         except Exception as e:
+        except Exception as e:
             print(e)
 
     async def getHtml(self):
